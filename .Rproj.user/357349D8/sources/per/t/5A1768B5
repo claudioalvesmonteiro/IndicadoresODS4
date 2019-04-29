@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1556541227785.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1085265091",
+    "id" : "5A1768B5",
+    "lastKnownWriteTime" : 1556541538,
+    "last_content_update" : 1556541538297,
+    "path" : "~/Documents/Consultorias/ODS4-censo-escolar/codigos/pacoteAnalise.R",
+    "project_path" : "codigos/pacoteAnalise.R",
+    "properties" : {
+        "cursorPosition" : "5,0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

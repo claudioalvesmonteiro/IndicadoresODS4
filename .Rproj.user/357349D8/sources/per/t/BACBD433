@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1556536180449.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3943051290",
+    "id" : "BACBD433",
+    "lastKnownWriteTime" : 1556542293,
+    "last_content_update" : 1556542293321,
+    "path" : "~/Documents/Consultorias/ODS4-censo-escolar/codigos/analise.R",
+    "project_path" : "codigos/analise.R",
+    "properties" : {
+        "cursorPosition" : "40,8",
+        "scrollLine" : "29",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
