@@ -1,0 +1,245 @@
+#======================================#
+# ONG Visao Mundial
+#======================================#
+# analise descritiva 
+# percepcao seguranca CE
+#--------------------------------------#
+# Claudio Alves Monteiro
+# 28 de marco de 2019
+#--------------------------------------#
+
+
+# crregar pacotes
+library(readxl); library(xlsx); source("PS-Karina-Artigo/codigos/packageModelling.R")
+
+# carregar dados
+CE_YHBS = read_excel("PS-Karina-Artigo/dataset_PS_YHBS_completa.xls")
+
+#=============================#
+# perfil dos entrevistados
+#=============================#
+
+#================================= funcao para contar e visualizar info categorica
+tablePlot <- function(var, title){
+  library(dplyr)
+  # criar banco de dados e procentagem
+  data = data.frame(table(var))
+  data = mutate(data, porcentagem = round(((Freq / sum(Freq))*100)) )
+  data = mutate(data, porcentagem_label = paste0(porcentagem, "%") )
+  
+  # ordenar barras
+  data$var = factor(data$var, levels = data$var[order(data$porcentagem)]) 
+  
+  # grafico
+  plot = ggplot(data = data, aes(x = var, y = porcentagem))+
+    geom_bar(stat = "identity", fill = "#261b3e")+
+    geom_label(aes(x = var, y = porcentagem, label = porcentagem_label),  hjust=0.5, vjust=.5, size = 3,
+               position = position_stack(vjust = 0.5))+
+    labs(x = "", y = "% do Total")+
+    scale_y_continuous(limits = c(0,100))+
+    coord_flip()+
+    tema_massa()
+  
+  # salvar grafico e tabela com infos do grafico
+  ggsave(paste0("PS-Karina-Artigo/visualizacao/",title, ".png"), plot, width = 7, height = 3)
+  write.xlsx(data, paste0("PS-Karina-Artigo/visualizacao/", title, ".xls"), row.names = F)
+  
+  
+  return(plot)
+  
+}
+
+# idade
+CE_YHBS = mutate(CE_YHBS, Faixa = ifelse(ID1 > 11, "Adolescente", "Crian?a"))
+tablePlot(CE_YHBS$Faixa, "perfil_respondente_idade")
+
+#========================
+# sexo
+
+CE_YHBS$Sexo = factor(CE_YHBS$ID2, levels = c("1. Homem", "2. Mulher", "3. Outro", "4. Prefiro n?o declarar" ,"5. N?o sei",             
+                                              "99. N?o respondeu"),
+                      labels = c("Menino", "Menina", "Outro", "Prefiro n?o declarar", 
+                                 "N?o sei", "N?o Respondeu"))
+
+CE_YHBS$Sexo  = as.character(CE_YHBS$Sexo)
+CE_YHBS$Sexo[CE_YHBS$Sexo == "Outro"] <- "Outro/Prefiro N?o Declarar"
+CE_YHBS$Sexo[CE_YHBS$Sexo == "Prefiro n?o declarar"] = "Outro/Prefiro N?o Declarar"
+
+CE_YHBS$Sexo[CE_YHBS$Sexo == "N?o sei"] = "NS/NR"
+CE_YHBS$Sexo[CE_YHBS$Sexo == "N?o Respondeu"] = "NS/NR"
+
+tablePlot(CE_YHBS$Sexo, "perfil_respondente_sexo")
+
+#===========================#
+# Ra?a
+
+CE_YHBS$ID3 = as.factor(CE_YHBS$ID3)
+CE_YHBS$Raca = factor(CE_YHBS$ID3, levels = c( "1. Preta", "2. Branca", "3. Parda", "4. Amarela",
+                                               "5. Ind?gena", "6. N?o sei", "7. Outro", "99. N?o respondeu"),
+                      labels = c("Preta", "Branca", "Parda", "Amarela", 
+                                 "Ind?gena", "N?o sei", "Outro", "N?o Respondeu"))
+
+CE_YHBS$Raca = as.character(CE_YHBS$Raca)
+CE_YHBS$Raca[CE_YHBS$Raca == "N?o sei" | CE_YHBS$Raca == "N?o Respondeu"] <- "NS/NR"
+CE_YHBS$Raca[CE_YHBS$Raca == "N?o sei" | CE_YHBS$Raca == "N?o Respondeu"] <-  "NS/NR"
+
+tablePlot(CE_YHBS$Raca, "perfil_respondente_ra?a")
+
+#=============================#
+# Residencia-urbano-rural
+
+CE_YHBS = mutate(CE_YHBS, Territorio_Rural = ifelse(Cidade == "Canapi" |
+                                                     Cidade == "Dix-Septrosado" |
+                                                     Cidade == "Inhap?", "Territ?rio Rural", "Territ?rio Urbano"))
+
+tablePlot(CE_YHBS$Territorio_Rural, "perfil_respondente_urbano")
+tablePlot(CE_YHBS$Cidade, "perfil_respondente_cidade")
+
+#===========================#
+# Tipo de base
+
+tablePlot(CE_YHBS$Base, "perfil_respondente_base")
+
+#=======================================#
+# Percepcao de Seguranca por Territorio
+#=======================================#
+
+# RIO GRANDE DO NORTE (DIX SEPT ROSADO) X FORTALEZA
+
+#=========== CASA
+
+# trasnformar em fator character
+CE_YHBS = mutate(CE_YHBS,Protecao_Casa = ifelse(PSC1 == "1. Sempre", "Sente-se Protegido(a)", "N?o se Protegido(a)"))
+
+# criar banco de dados e procentagem
+casa_ter_count = data.frame(table(CE_YHBS$Protecao_Casa, CE_YHBS$Cidade))
+write.xlsx(casa_ter_count, "casa_ter_count.xlsx", row.names = F)
+
+# carregar soma por territorio
+casa_ter_count <- read_excel("PS-Karina-Artigo/casa_ter_count.xlsx")
+casa_ter_count$Var1[casa_ter_count$Var1 == "N?o se Protegido(a)"] <- "N?o se Sente Protegido(a)" 
+casa_ter_count$Var1[casa_ter_count$Var1 == "Sente-se Protegido(a)"] <- "Se Sente Protegido(a)" 
+casa_ter_count = mutate(casa_ter_count, porcentagem = round((Freq / freq_territorio)*100) )
+casa_ter_count = mutate(casa_ter_count, porcentagem_label = paste0(porcentagem, "%") )
+
+# ordenar barras
+#data$var = factor(data$var, levels = data$var[order(data$porcentagem)]) 
+
+# grafico
+ggplot(data = casa_ter_count, aes(x = Var2, y = porcentagem, group = Var1))+
+  geom_bar(stat = "identity", position = "dodge", aes( fill = Var1))+
+  geom_label(aes(label = porcentagem_label),  hjust=0.5, vjust=.5, size = 2.9,
+             position = position_dodge(0.9))+
+  labs(x = "", y = "% do Total", fill = "CASA")+
+  scale_y_continuous(limits = c(0,100))+
+  tema_massa()
+ggsave("PS-Karina-Artigo/visualizacao/Protecao_CASA_cidade.png", width = 9, height = 4)
+write_excel_csv(casa_ter_count, "PS-Karina-Artigo/visualizacao/Protecao_CASA_cidade.xls")
+
+#============= ESCOLA
+
+# trasnformar em fator character
+CE_YHBS = mutate(CE_YHBS,Protecao_Escola = ifelse(PSE1 == "1. Sempre", "Se Sente Protegido(a)", "N?o se Sente Protegido(a)"))
+
+# criar banco de dados e procentagem
+escola_ter_count = data.frame(table(CE_YHBS$Protecao_Escola, CE_YHBS$Cidade))
+write.xlsx(escola_ter_count, "escola_ter_count.xlsx", row.names = F)
+
+#
+escola_ter_count <- read_excel("PS-Karina-Artigo/escola_ter_count.xlsx")
+escola_ter_count$Var1[escola_ter_count$Var1 == "Sente-se Protegido(a)"] <- "Se Sente Protegido(a)" 
+
+escola_ter_count = mutate(escola_ter_count,  porcentagem = round((Freq / freq_territorio)*100))
+escola_ter_count = mutate(escola_ter_count, porcentagem_label = paste0(porcentagem, "%") )
+
+# ordenar barras
+#data$var = factor(data$var, levels = data$var[order(data$porcentagem)]) 
+
+# grafico
+ggplot(data = escola_ter_count, aes(x = Var2, y = porcentagem, group = Var1))+
+  geom_bar(stat = "identity", position = "dodge", aes( fill = Var1))+
+  geom_label(aes(label = porcentagem_label),  hjust=0.5, vjust=.5, size = 2.8,
+             position = position_dodge(0.9))+
+  labs(x = "", y = "% do Total", fill = "ESCOLA")+
+  scale_y_continuous(limits = c(0,100))+
+  tema_massa()
+ggsave("PS-Karina-Artigo/visualizacao/Protecao_ESCOLA_cidade.png", width = 9, height = 4)
+write_excel_csv(escola_ter_count, "PS-Karina-Artigo/visualizacao/Protecao_ESCOLA_cidade.xls")
+
+#====================================#
+# perguntas 
+#====================================#
+library(ggplot2)
+peg = CE_YHBS[,c("PSEM1", "PSEM2", "PSEM3", "PSEM4", "PSEM5")]
+
+recodeNANR = function(var){
+  
+  varCoded = var
+  
+  varCoded[varCoded == "99. N?o respondeu" | varCoded == "4. N?o se Aplica"] = "NR/NA"
+  varCoded[varCoded == "1. Sempre"] = "Sempre"
+  varCoded[varCoded == "2. ?s vezes"] = "?s Vezes"
+  varCoded[varCoded == "3. Nunca"] = "Nunca"
+  
+  return(varCoded)
+}
+
+CE_YHBS$PSEM1x = recodeNANR(CE_YHBS$PSEM1)  
+CE_YHBS$PSEM2x = recodeNANR(CE_YHBS$PSEM2)  
+CE_YHBS$PSEM3x = recodeNANR(CE_YHBS$PSEM3)  
+CE_YHBS$PSEM4x = recodeNANR(CE_YHBS$PSEM4)  
+CE_YHBS$PSEM5x = recodeNANR(CE_YHBS$PSEM5)  
+
+tablePlot(CE_YHBS$PSEM1x, "Se eu sinto que estou correndo perigo, eu sei pra quem posso pedir ajuda")
+tablePlot(CE_YHBS$PSEM2x, "Quando fico doente meus pais ou respons?veis me levam ao m?dico")
+tablePlot(CE_YHBS$PSEM3x, "Eu me sinto amado-bem tratado pelos meus pais-respons?veis")
+tablePlot(CE_YHBS$PSEM4x, "Eu acho que serei muito feliz, quando eu crescer")
+tablePlot(CE_YHBS$PSEM5x, "Eu ou algu?m da minha fam?lia j? precisou recorrer a delegacias, hospitais e outros locais de assist?ncia por causa de algum tipo de viol?ncia?")
+
+c("Sabem onde pedir ajuda se correrem perigo")
+
+#====================================#
+# MAPA GEOLOC
+#====================================#
+
+library(raster);
+if (!require(gpclib)) install.packages("gpclib", type="source")
+gpclibPermit()
+require("rgdal") # requires sp, will use proj.4 if installed
+require("maptools")
+require("ggplot2")
+require("plyr")
+library(ggmap)
+
+library(readxl); library(ggplot2); library(png); library(stringr); library(ggpubr); library(viridis); library(maps) 
+library(mapdata);  library(ggrepel);  library(sp); library(maps); library(maptools); library(xlsx)
+library(dplyr); library(stringi); library(tidyverse)
+
+# carregar shape
+shape = shapefile("PS-Karina-Artigo/dados/Estados_do_Brasil/Brasil.shp")
+
+# criar dataframe do shapefile
+shape@data$id = rownames(shape@data)
+brasil.points = fortify(shape, region="id")
+brasil.df = join(brasil.points, shape@data, by="id")
+
+# criar dataframe do shapefile
+points = data.frame(long = c(-37.526059,  -37.518333, -37.676691, -38.536084, -43.485116, -34.906612, -38.407901),
+                    lat = c(-9.122577, -5.450296, -9.276534, -3.780503, -22.703076, -8.055205, -12.922983),
+                    cidades = c("Canapi", "Dix-Septrosado", "Inhapi", "Fortaleza", "Nova Igua?u", "Recife",  "Salvador"))
+  
+
+mapa = ggplot(brasil.df, aes(long, lat, group = group)) + 
+  geom_polygon(fill="grey70") +
+ geom_path(color="white", size = 0.2) +
+  coord_equal() +
+  theme_nothing()
+
+mapa +
+  geom_point(data = points, aes( x = points$long, y = points$lat, group = 1), color="red")+
+  geom_label_repel(data = points, aes( x = points$long, 
+                                 y = points$lat, 
+                                 label = points$cidades,
+                                 group = 1), size = 2.8)
+
+ggsave("PS-Karina-Artigo/visualizacao/MAPA.png", width = 6, height = 6)

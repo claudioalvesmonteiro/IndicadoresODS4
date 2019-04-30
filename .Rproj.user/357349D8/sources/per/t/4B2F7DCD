@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1556651651766.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3465350549",
+    "id" : "4B2F7DCD",
+    "lastKnownWriteTime" : 1556308809,
+    "last_content_update" : 1556308809,
+    "path" : "~/Documents/Consultorias/analises-visao-mundial/PS-Karina-Artigo/codigos/analise_combinada.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "102,29",
+        "scrollLine" : "85"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

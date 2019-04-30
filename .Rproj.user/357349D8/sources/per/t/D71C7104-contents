@@ -1,0 +1,126 @@
+---
+title: Análise de Dados Percepção de Segurança
+author: Cláudio Monteiro/Visão Mundial
+date: Abril, 2019
+css: custom.css
+output:
+   rmdformats::readthedown:
+    highlight: kate
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+# Metodologia da An?lise
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# carregar pacotes 
+library(xlsx); library(dplyr); library(readxl); library(stargazer); library(ggpubr); library(knitr)
+library(kableExtra)
+
+# carregar dados
+data_PS_YHBS = read_excel("dataset_PS_YHBS_completa.xls")
+
+# missing cases
+duplicatedVarPrint = function(data){
+  
+  total = dim(data)[1]
+  repetidos = sum(duplicated(data$Quest_PA_Num))
+  porcentoRep = round(((sum(duplicated(data$Quest_PA_Num)))*100   / dim(data)[1]), 1)
+  totalClean = dim(data)[1] - repetidos
+ 
+  return(list(total, repetidos, porcentoRep, totalClean))
+
+  }
+
+total = duplicatedVarPrint(data_PS_YHBS)[1]
+repetidos = duplicatedVarPrint(data_PS_YHBS)[2]
+porcentoRep = duplicatedVarPrint(data_PS_YHBS)[3]
+totalClean = duplicatedVarPrint(data_PS_YHBS)[4]
+```
+
+Pergunta: Qual o efeito de características individuais e sociais na percepção de segurança de crianças e adolescentes?
+
+Essa pergunta foi levantada a partir da combinação dos dados da pesquisas de percepção de segurança de crianças(PS-CE) e adolescentes (PS-YHBS) feita pela Visão Mundial Brasil. Ao total foram coletados `r duplicatedVarPrint(data_PS_YHBS)[1]` casos, dos quais `r repetidos` estavam repetidos (`r porcentoRep`% do Total), **resultando numa base sem duplicados com `r totalClean` respondentes**.
+
+O número de respondentes por cidade, na base combinada, segue abaixo:
+
+</br>
+
+```{r, echo=F}
+territorio_programas <- read_excel("territorio_programas.xls")
+territorio_programas = territorio_programas[!duplicated(territorio_programas$Programa),]
+territorio_data = merge(data_PS_YHBS, territorio_programas, by.x = "PA", by.y = "Programa")
+cidadeCount = data.frame(table(territorio_data$Cidade.x))
+
+escolaCount = data.frame(table(territorio_data$Cidade.x, territorio_data$Escola))
+escolaCount = escolaCount[escolaCount$Freq > 0,]
+escolaCount = data.frame(table(escolaCount$Var1))
+
+datacount = merge(cidadeCount, escolaCount, by = "Var1")
+colnames(datacount) = c("Cidade", "Número de Respondentes", "Número de Escolas Aplicadas")
+datacount %>%
+  kable() %>%
+kable_styling(bootstrap_options = "striped", full_width = F)
+
+```
+
+Para responder à pergunta optou-se por executar um modelo estatístico de regressão logística a fim de verificar qual o efeito de características dos indivíduos sobre a probabilidade do um evento ocorrer (FIGUEIREDO et al, 2015). O fênomeno que queremos explicar (variável dependente) é a percepção de segurança de crianças e adolescentes, sendo mensurada de duas formas: **(1) Percepção da Segurança em Casa**, mensurada a partir da pergunta PSC1 - "Você se sente protegido em casa?", classificando a resposta "sempre" com o valor 1 e "Às Vezes" e "Nunca" com o valor 0; e **(2) Percepção da Segurança na Escola**, mensurada a partir da pergunta PSE1 - "Você se sente protegido na Escola?", classificando a resposta "sempre" com o valor 1 e "Às Vezes" e "Nunca" com o valor 0. Abaixo encontra-se a tabela de classificação de variáveis dependentes e independentes.
+
+| **Variável Transformada** | **Variável Original**   | **Condição de Classificação**   |     
+| ------------------------- |:----------------------: | :------------------------------:
+| Protecao_Casa             |         PSC1            |    PSC1 == "1. Sempre"
+| Protecao_Escola           |         PSE1            |   PSE1 == "1. Sempre"
+| Genero_Mulher             |         ID2             |   ID2 == "2. Genero_Mulher"
+| Idade                     |         ID1             |   Idade = ID1
+| Raca_Negra_Parda_Indigena |         ID3             |   ID3 == "1. Preta" ou ID3 == "3. Parda" ou ID3 == "5. IndÃÂ?gena"
+| Possui_Deficiencia        |         ID4             |   ID4 == "1. Sim"
+| Territorio_Alagoas        |      Territorio         |   Territorio == "Alagoas"
+| Territorio_Fortaleza      |      Territorio         |   Cidade == "Fortaleza"
+| Territorio_Rio_Grande_do_Norte|  Territorio         |   Cidade == "Dix-Septrosado"
+| Territorio_Recife         |      Territorio         |   Territorio == "Recife"
+| Territorio_Rio_de_Janeiro |      Territorio         |   Territorio == "Rio de Janeiro"
+| Territorio_Salvador       |      Territorio         |   Territorio == "Salvador"
+
+
+
+```{r, echo = FALSE, eval=FALSE}
+
+# Funcao em linguagem R para criar variaveis de interesse
+
+recodeVars = function(data){
+  library(dplyr);
+    # VD
+    data = mutate(data, Protecao_Casa = ifelse(PSC1 == "1. Sempre", 1, 0))
+    data = mutate(data, Protecao_Escola = ifelse(PSE1 == "1. Sempre", 1, 0))
+    # VIs
+    data = mutate(data, Genero_Mulher = ifelse(ID2 == "2. Genero_Mulher", 1, 0))
+    data = mutate(data, Idade = ID1)
+    data = mutate(data, Raca_Negra_Parda_Indigena = ifelse(ID3 == "1. Preta" | ID3 == "3. Parda" | ID3 == "5. IndÃÂ?gena",  1, 0))
+    data = mutate(data, Possui_Deficiencia = ifelse(ID4 == "1. Sim", 1, 0))
+    # territorios
+    data = mutate(data, Territorio_Alagoas = ifelse(Territorio == "Alagoas", 1, 0))
+    data = mutate(data, Territorio_Fortaleza = ifelse(Cidade == "Fortaleza", 1, 0))
+    data = mutate(data, Territorio_Rio_Grande_do_Norte = ifelse(Cidade == "Dix-Septrosado", 1, 0))
+    data = mutate(data, Territorio_Recife = ifelse(Territorio == "Recife", 1, 0))
+    data = mutate(data, Territorio_Rio_de_Janeiro = ifelse(Territorio == "Rio de Janeiro", 1, 0))
+    data = mutate(data, Territorio_Salvador = ifelse(Territorio == "Salvador", 1, 0))
+    
+    return(data)
+}
+```
+
+# Metodologia do Processamento
+
+A linguagem de programação R (v 3.4), um software livre, foi utilizada para tratar, combinar e recodificar as bases de dados e também executar os modelos estatísticos e gráficos. Com essa ferramenta foi possóvel automatizar alguns dos processos de geração de cruzamentos, modelos de análise e também este relatório. De modo simples, o R permite que criemos processos de manipulação de dados mais complexos baseados em condicionantes de fluxo e laços onde comandos são executados repetidas vezes, diminuindo o tempo de trabalho que seria necessário para executar a mesma tarefa em cada contexto específico e permitindo a replicação da análise (KING, 1995).
+
+
+# Interpretação dos Resultados
+
+O modelo de regressão logístiica nos retorna os coeficientes \( \beta \ B \) do efeito de cada variável independente (VI) sobre a dependente (VD). Para interpretar esses valores em termos de razão de chance (probabilidade) é preciso calcular a exponencial de cada coeficiente. Um Exp\( \beta \ B \) acima de 1 indica um efeito positivo sobre a variável dependente e abaixo de 1 indica um efeito negativo. De forma prática, um Exp\( \beta \ B \) de 1.78 equivale dizer que **o acréscimo em uma unidade da VI aumenta em 1,78 a chance de ocorrer a VD**, ou que **o acréscimo em uma unidade da VI aumenta em 78% a chance de ocorrer a VD**.
+
+Para o presente trabalho foram desenvolvidos 6 modelos de regressão logística para a variável dependente "Percepção da Segurança em Casa" e mais 6 para a  "Percepção da Segurançaa na Escola". Para isolar o efeito dos territorios entre si, foi desenvolvido um modelo com cada Territorio, assim cada modelo contém as variáveis independentes: Idade, Genero_Mulher, Raca_Negra_Parda_Indigena, Possui_Deficiencia e Territorio_Nome_do_territorio. Para a apresentação dos resultados, optou-se por selecionar os valores de efeito (% de probabilidade) de cada teritorio e agregar em uma única visualização, em que os valores das demais variáveis foram escolhidos a partir do modelo que apresentou o menor valor de Akaike Information Criterion (AIC), que é um valor de estimativa de modelos logit, em que quanto menor indica uma melhor aproximação da realidade (poder de explicação).
+
+

@@ -1,0 +1,6 @@
+"0","# carregar shape
+shape = shapefile(""dados/geo/Brasil.shp"")
+"
+"2","Error in shapefile(""dados/geo/Brasil.shp"") : 
+  could not find function ""shapefile""
+"

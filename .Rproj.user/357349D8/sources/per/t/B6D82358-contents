@@ -1,0 +1,225 @@
+#======================================#
+# ONG Visao Mundial
+#======================================#
+# modelagem estatistica 
+# percepcao seguranca CE
+#--------------------------------------#
+# Claudio Alves Monteiro
+# 25 de Abril de 2019
+#--------------------------------------#
+
+#=====================================#
+# ESTATISTICA DESCRITIVA
+#======================================#
+
+tablePlot <- function(var, title){
+  library(dplyr)
+  # criar banco de dados e procentagem
+  data = data.frame(table(var))
+  data = mutate(data, porcentagem = round(((Freq / sum(Freq))*100)) )
+  data = mutate(data, porcentagem_label = paste0(porcentagem, "%") )
+  
+  # ordenar barras
+  data$var = factor(data$var, levels = data$var[order(data$porcentagem)]) 
+  
+  # grafico
+  plot = ggplot(data = data, aes(x = var, y = porcentagem))+
+    geom_bar(stat = "identity", fill = "#261b3e")+
+    geom_label(aes(x = var, y = porcentagem, label = porcentagem_label),  hjust=0.5, vjust=.5, size = 3,
+               position = position_stack(vjust = 0.5))+
+    labs(x = "", y = "% do Total")+
+    scale_y_continuous(limits = c(0,100))+
+    coord_flip()+
+    tema_massa()
+  
+  # salvar grafico e tabela com infos do grafico
+  #ggsave(paste0("PS-Karina-Artigo/visualizacao/",title, ".png"), plot, width = 7, height = 3)
+  write.xlsx(data, paste0("tabelas/", title, ".xls"), row.names = F)
+  
+  
+  return(plot)
+  
+}
+
+# tema ggplot
+tema_massa <- function(base_size = 12, base_family = "") {
+  theme_minimal(base_size = base_size, base_family = base_family) %+replace% 
+    theme(axis.ticks = element_line(size = 1, colour = "grey70" ),
+          axis.text.x = element_text(colour= "black",size=10,hjust=.5,vjust=.5,face="plain"),
+          axis.text.y = element_text(colour="black",size=10,angle=0,hjust=1,vjust=0,face="plain"), 
+          axis.title.x = element_text(colour="black",size=11,angle=0,hjust=.5,vjust=0,face="plain"),
+          axis.title.y = element_text(colour="black",size=11,angle=90,hjust=.5,vjust=0.5,face="plain"),
+          title = element_text(colour="black",size=11,angle=0,hjust=.5,vjust=.5,face="plain"),
+          panel.grid.major = element_line(colour = grey(0.85)), 
+          panel.grid.minor = element_line(colour = grey(1)),
+          legend.key.size = unit(6, "mm"),
+          legend.text = element_text(size = 10),
+          legend.title = element_text(size = 11),
+          axis.line = element_line(size = 1, colour = "grey70"),
+          plot.background = element_blank())
+}
+
+#=====================#
+# MODELAGEM
+#====================#
+
+
+transModelData = function(model){
+  
+  # selecionar coeficientes
+  coefs <- as.data.frame(summary(model)$coefficients[-c(1),1:2])
+  
+  # transformar coeficientes em exp
+  coefs$vars <- rownames(coefs)
+  coefs$exp <- exp(coefs$Estimate)
+  
+  # transformar exp em % de efeito
+  coefs$Porcentagem_de_Efeito = round((coefs$exp -1)*100)
+  coefs$Porcentagem_de_Efeito_label = paste0(coefs$Porcentagem_de_Efeito, "%")
+  
+  return(coefs)
+}
+
+
+#=========== funcao para gerar visualizacao 2
+coef.plot2 <- function(coefs, title){
+  library(ggplot2);
+  names(coefs)[2] <- "se" 
+  
+  coefs$vars = factor(coefs$vars, levels = coefs$vars) 
+  
+  coefplot <- ggplot(coefs, aes(vars, Estimate)) +
+    geom_hline(yintercept=0, lty=2, lwd=1, colour="grey50") +
+    geom_errorbar(aes(ymin=Estimate - 1.96*se, ymax=Estimate + 1.96*se),lwd=.6, colour="black", width=0) +
+    geom_errorbar(aes(ymin=Estimate - se, ymax=Estimate + se),lwd=1, colour="black", width=0) +
+    geom_point(size=1.3, pch=21, fill="black") + scale_x_discrete(name = "") + 
+    scale_y_continuous(name = "") +
+    tema_massa()%+replace% 
+    theme(axis.text.x = element_text(size=10,angle = 40, hjust=0.9,vjust=0.9,face="plain")) +
+    labs(title = title)
+  return(coefplot)
+}
+
+#=========== funcao para gerar visualizacao 3
+coef.plot3 <- function(coefs, title){
+  library(ggplot2);
+  
+  coefs$vars = factor(coefs$vars, levels = coefs$vars) 
+  coefs$colours <- ifelse(coefs$exp >= 1 , "lightblue", "#fe3e3e")
+  
+  coefplot = ggplot(coefs, aes(vars, Porcentagem_de_Efeito)) +
+    geom_bar(stat = "identity", aes(fill = colours))+
+    geom_label(aes(label = Porcentagem_de_Efeito_label), size = 2.5)+
+    scale_fill_identity()+
+    tema_massa()%+replace% 
+    theme(axis.text.x = element_text(size=10,angle = 40, hjust=0.9,vjust=0.9,face="plain")) +
+    labs(title = "", x = "", y= "Efeito sobre Percepcao de Seguranca (%)")
+  
+  ggsave(paste0(title, ".png"),coefplot, width = 7, height = 5)
+  write.xlsx(coefs[,c(3,6)],  paste0(title, ".xls"), row.names = F)
+  
+  return(coefplot)
+  
+}
+
+#=========== funcao para gerar visualizacao 4
+plotCoef = function(coefs, title = "",  hideLabel = FALSE){
+  
+  coefs$vars = factor(coefs$vars, levels = coefs$vars) 
+  coefs$colours <- ifelse(coefs$exp >= 1 , "lightblue", "#fe3e3e")
+  
+  if (hideLabel == FALSE){
+    
+  coefplot = ggplot(coefs, aes(vars, Porcentagem_de_Efeito)) +
+    geom_bar(stat = "identity", aes(fill = colours))+
+    geom_label(aes(label = Porcentagem_de_Efeito_label), size = 2.5)+
+    scale_fill_identity()+
+    tema_massa()+
+    coord_flip()+
+    labs(title = title, x = "", y= "Efeito sobre Percepcao de Seguranca (%)")
+  }
+  
+  else if (hideLabel == TRUE){
+    coefplot = ggplot(coefs, aes(vars, Porcentagem_de_Efeito)) +
+      geom_bar(stat = "identity", aes(fill = colours))+
+      geom_label(aes(label = Porcentagem_de_Efeito_label), size = 2.5)+
+      scale_fill_identity()+
+      coord_flip()+
+      labs(title = title, x = "", y= "Efeito sobre Percepcao de Seguranca (%)")+
+      tema_massa()+
+      theme(axis.title.y=element_blank(),
+                                  axis.text.y=element_blank())
+  }
+  
+  return(coefplot)
+}
+
+
+coef.plot4 <- function(coefplot1, coefplot2, title){
+  
+  coefarrange <- ggarrange(coefplot1, coefplot2, ncol = 2, nrow = 1)
+  ggsave(paste0(title,".png"), coefarrange, width = 7, height = 7, units = "in")
+  
+  
+  return(coefarrange)
+  
+}
+
+
+#======================= funcao para combinar graficos de coeficientes
+plotCombine = function(mod1, mod2, mod3, mod4, mod5, mod6, title){
+  
+  cp1 = coef.plot1(mod1, "Alagoas")
+  cp2 = coef.plot1(mod2, "Fortaleza")
+  cp3 = coef.plot1(mod3, "Rio Grande do Norte")
+  cp4 = coef.plot1(mod4, "Recife")
+  cp5 = coef.plot1(mod5, "Rio de Janeiro")
+  cp6 = coef.plot1(mod6, "Salvador")
+  
+  p1 = ggarrange(cp1, cp2, cp3, cp4, cp5, cp6, nrow = 3, ncol = 2)
+  p1 = annotate_figure(p1, top = text_grob(title, size = 16))
+  
+  return(p1)
+  
+}
+
+#=====================================#
+# Filter and plot models function
+
+listaTerritorio = c("Alagoas",  "Fortaleza",
+                    "Rio Grande do Norte", "Recife", 
+                    "Rio de Janeiro", "Salvador")
+
+selectAndFilterModels = function(mod1, mod2, mod3, mod4, mod5, mod6, names_list){
+  
+  # selecionar modelo base
+  listaMod = list(mod1, mod2, mod3, mod4, mod5, mod6)
+  
+  # identificar modelo com maior AIC
+  vectorAIC = c()
+  for (i in listaMod){
+    vectorAIC = c(vectorAIC, i$aic)
+  }
+  id = which(vectorAIC == min(vectorAIC))
+  
+  # criar dataframe dos modelos
+  coefs <- as.data.frame(summary(listaMod[id][[1]])$coefficients[-c(1,6),1:2])
+  
+  # incluir territorio
+  cont = 1
+  while (cont <= length(listaMod)){
+    # capturar coeficiente de territorio
+    territorio_row = as.data.frame(summary(listaMod[cont][[1]])$coefficients[-1,1:2])
+    territorio_row = territorio_row[5,] 
+    rownames(territorio_row) = paste0("", names_list[cont])
+    cont = cont + 1
+    # incluir na base
+    coefs = rbind(coefs, territorio_row)
+  }
+  
+  # organizar base final
+  coefs$vars <- rownames(coefs)
+  coefs$exp <- exp(coefs$Estimate)
+  
+  return(coefs)
+}

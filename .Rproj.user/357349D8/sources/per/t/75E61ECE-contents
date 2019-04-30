@@ -1,0 +1,127 @@
+---
+title: "Relatório Cidade "
+author: "Cláudio A. Monteiro"
+date: "April 30, 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+# carregar pacotes
+library(raster); library(rgdal); library(maptools); library(plyr); library(ggmap); library(readxl); library(ggplot2); library(png); library(stringr); library(ggpubr); library(viridis); library(maps) 
+library(mapdata);  library(ggrepel);  library(sp); library(maps); library(maptools); library(xlsx); library(dplyr); library(stringi); library(tidyverse)
+
+if (!require(gpclib)) install.packages("gpclib", type="source")
+gpclibPermit()
+```
+
+```{r,  echo = FALSE}
+chave = "Canapi"
+source("packageModelling.R")
+```
+
+## MAPA
+
+```{r cars, echo = FALSE}
+
+#====================================#
+# MAPA GEOLOC
+#====================================#
+
+# carregar shape
+shape = shapefile("dados/geo/Brasil.shp")
+
+# criar dataframe do shapefile
+shape@data$id = rownames(shape@data)
+brasil.points = fortify(shape, region="id")
+brasil.df = join(brasil.points, shape@data, by="id")
+
+# criar dataframe do shapefile
+points = data.frame(long = c(-37.526059,  -37.518333, -37.676691, -38.536084, -43.485116, -34.906612, -38.407901),
+                    lat = c(-9.122577, -5.450296, -9.276534, -3.780503, -22.703076, -8.055205, -12.922983),
+                    cidades = c("Canapi", "Dix-Septrosado", "Inhapi", "Fortaleza", "Nova Iguaçu", "Recife",  "Salvador"))
+  
+points = points[points$cidades == chave,]
+
+mapa = ggplot(brasil.df, aes(long, lat, group = group)) + 
+  geom_polygon(fill="grey70") +
+ geom_path(color="white", size = 0.2) +
+  coord_equal() +
+  theme_nothing()
+
+mapa +
+  geom_point(data = points, aes( x = points$long, y = points$lat, group = 1), color="red")+
+  geom_label_repel(data = points, aes( x = points$long, 
+                                 y = points$lat, 
+                                 label = points$cidades,
+                                 group = 1), size = 2.8)
+
+#ggsave("PS-Karina-Artigo/visualizacao/MAPA.png", width = 6, height = 6)
+
+```
+
+## PERFIL DOS ENTREVISTADOS
+
+You can also embed plots, for example:
+
+```{r carregar_dados}
+CE_YHBS = read_excel("dados/dataset_PS_YHBS_completa.xls")
+#CE_YHBS = CE_YHBS[CE_YHBS]
+```
+
+```{r perfil_entrevistados, echo=FALSE, fig.width=6, fig.height=3}
+
+# idade
+CE_YHBS = mutate(CE_YHBS, Faixa = ifelse(ID1 > 11, "Adolescente", "Criança"))
+tablePlot(CE_YHBS$Faixa, "perfil_respondente_idade")
+
+#========================
+# sexo
+
+CE_YHBS$Sexo = factor(CE_YHBS$ID2, levels = c("1. Homem", "2. Mulher", "3. Outro", "4. Prefiro não declarar" ,"5. Nã sei",             
+                                              "99. Não respondeu"),
+                      labels = c("Menino", "Menina", "Outro", "Prefiro não declarar", 
+                                 "Não sei", "Não Respondeu"))
+
+CE_YHBS$Sexo  = as.character(CE_YHBS$Sexo)
+CE_YHBS$Sexo[CE_YHBS$Sexo == "Outro"] <- "Outro/Prefiro Não Declarar"
+CE_YHBS$Sexo[CE_YHBS$Sexo == "Prefiro não declarar"] = "Outro/Prefiro Não Declarar"
+
+CE_YHBS$Sexo[CE_YHBS$Sexo == "Não sei"] = "NS/NR"
+CE_YHBS$Sexo[CE_YHBS$Sexo == "Não Respondeu"] = "NS/NR"
+
+tablePlot(CE_YHBS$Sexo, "perfil_respondente_sexo")
+
+#===========================#
+# Ra?a
+
+CE_YHBS$ID3 = as.factor(CE_YHBS$ID3)
+CE_YHBS$Raca = factor(CE_YHBS$ID3, levels = c( "1. Preta", "2. Branca", "3. Parda", "4. Amarela",
+                                               "5. Indígena", "6. Não sei", "7. Outro", "99. N?o respondeu"),
+                      labels = c("Preta", "Branca", "Parda", "Amarela", 
+                                 "Indígena", "Não sei", "Outro", "Não Respondeu"))
+
+CE_YHBS$Raca = as.character(CE_YHBS$Raca)
+CE_YHBS$Raca[CE_YHBS$Raca == "Não sei" | CE_YHBS$Raca == "Não Respondeu"] <- "NS/NR"
+CE_YHBS$Raca[CE_YHBS$Raca == "Não sei" | CE_YHBS$Raca == "Não Respondeu"] <-  "NS/NR"
+
+tablePlot(CE_YHBS$Raca, "perfil_respondente_raça")
+
+#=============================#
+# Residencia-urbano-rural
+
+CE_YHBS = mutate(CE_YHBS, Territorio_Rural = ifelse(Cidade == "Canapi" |
+                                                     Cidade == "Dix-Septrosado" |
+                                                     Cidade == "Inhapi", "Território Rural", "Território Urbano"))
+
+tablePlot(CE_YHBS$Territorio_Rural, "perfil_respondente_urbano")
+tablePlot(CE_YHBS$Cidade, "perfil_respondente_cidade")
+
+```
+
+## MODELO
+
+## PERCEPÇÃO POR CIDADE

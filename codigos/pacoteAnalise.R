@@ -3,6 +3,7 @@
 # preprocess
 #==================#
 
+library(dplyr); library(xlsx)
 
 countBR = function(var2, arq, ano){
   
@@ -18,7 +19,7 @@ countBR = function(var2, arq, ano){
   count = mutate(count, porcentagem = round((Freq1/total)*100,1) )
   
   # salvar e retornar
-  write_excel_csv(count, paste0('resultados/', arq, '_BR_', ano ,'.xls'))
+  write.xlsx(count, paste0('resultados/', arq, '_BR_', ano ,'.xls'), row.names = F)
   return(count)
   
 }
@@ -38,7 +39,7 @@ countUF = function(var1, var2, codeUF, arq, ano){
   
   # combinar dados e retornar
   count = merge(codeUF, count, by = "Territorio")
-  write_excel_csv(count, paste0('resultados/', arq, '_UF_', ano ,'.xls'))
+  write.xlsx(count, paste0('resultados/', arq, '_UF_', ano ,'.xls'), row.names = F)
   return(count)
   
 }
@@ -61,7 +62,7 @@ countRegiao = function(var1, var2, arq, ano){
                           Regiao = c('N', 'NE', 'SE', 'S', 'CO'))
   count = merge(codeRegiao, count, by = "Territorio")
   
-  write_excel_csv(count, paste0('resultados/', arq, '_REGIAO_', ano ,'.xls'))
+  write.xlsx(count, paste0('resultados/', arq, '_REGIAO_', ano ,'.xls'), row.names = F)
   return(count)
   
 }
